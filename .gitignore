@@ -55,6 +55,7 @@ alloy.config.ts
 alloy.config.yaml
 alloy.config.yml
 *-alloy
+!config.alloy
 
 # Grafana specific
 .faro/
