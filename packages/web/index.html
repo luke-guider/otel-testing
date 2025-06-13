@@ -1,0 +1,129 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Dice Roller</title>
+    <style>
+      body {
+        font-family: Arial, sans-serif;
+        max-width: 800px;
+        margin: 0 auto;
+        padding: 20px;
+        text-align: center;
+      }
+      button {
+        padding: 10px 20px;
+        font-size: 16px;
+        cursor: pointer;
+        background-color: #4caf50;
+        color: white;
+        border: none;
+        border-radius: 4px;
+        margin: 0 5px;
+      }
+      button:hover {
+        background-color: #45a049;
+      }
+      #results {
+        margin-top: 20px;
+        padding: 20px;
+        border: 1px solid #ddd;
+        border-radius: 4px;
+        min-height: 100px;
+      }
+    </style>
+  </head>
+  <body>
+    <h1>Dice Roller</h1>
+    <button onclick="rollDice()">Roll 12 Dice</button>
+    <button onclick="throwError()">Throw Error</button>
+    <div id="results"></div>
+
+    <script type="module">
+      import { faro } from './src/instrumentation.ts';
+      import { SpanStatusCode, propagation } from '@opentelemetry/api';
+
+      const { trace, context } = faro.api.getOTEL();
+
+      const tracer = trace.getTracer('dice-roller-web');
+
+      window.rollDice = async function () {
+        console.log('rollDice');
+        // Create a new span for the entire roll operation
+        const span = tracer.startSpan('roll-dice-operation');
+
+        try {
+          // Set the span as active
+          await context.with(
+            trace.setSpan(context.active(), span),
+            async () => {
+              // Create a child span for the API call
+              const apiSpan = tracer.startSpan('call-dice-api');
+
+              try {
+                // Create carrier for trace context
+                const carrier = {};
+                propagation.inject(context.active(), carrier);
+
+                const response = await fetch(
+                  'http://localhost:8080/rolldice?rolls=4',
+                  {
+                    headers: {
+                      ...carrier,
+                    },
+                  },
+                );
+
+                const data = await response.json();
+                console.log('rolled dice', data);
+                document.getElementById('results').textContent =
+                  `Results: ${data.join(', ')}`;
+
+                // Add the results as a span attribute
+                apiSpan.setAttribute('dice.results', data.join(','));
+                apiSpan.setStatus({ code: SpanStatusCode.OK });
+              } catch (error) {
+                apiSpan.setStatus({
+                  code: SpanStatusCode.ERROR,
+                  message: error.message,
+                });
+                throw error;
+              } finally {
+                apiSpan.end();
+              }
+            },
+          );
+
+          span.setStatus({ code: SpanStatusCode.OK });
+        } catch (error) {
+          span.setStatus({
+            code: SpanStatusCode.ERROR,
+            message: error.message,
+          });
+          document.getElementById('results').textContent =
+            `Error: ${error.message}`;
+        } finally {
+          span.end();
+        }
+      };
+
+      window.throwError = async function () {
+        const span = tracer.startSpan('error-operation');
+        try {
+          throw new Error('This is a test error');
+        } catch (error) {
+          console.error('error', error);
+          span.setStatus({
+            code: SpanStatusCode.ERROR,
+            message: error.message,
+          });
+          document.getElementById('results').textContent =
+            `Error: ${error.message}`;
+        } finally {
+          span.end();
+        }
+      };
+    </script>
+  </body>
+</html>
