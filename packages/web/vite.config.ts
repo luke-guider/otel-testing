@@ -1,30 +1,42 @@
 import { config } from '@dotenvx/dotenvx';
 import faroUploader from '@grafana/faro-rollup-plugin';
+import react from '@vitejs/plugin-react';
 import { defineConfig } from 'vite';
 
-export default defineConfig(() => {
-  config({
-    path: '.env',
-  });
+// Load environment variables
+config({
+  path: '.env',
+  ignore: ['MISSING_ENV_FILE'],
+});
 
-  const { FARO_API_KEY } = process.env;
+const faroApiKey = process.env.VITE_FARO_API_KEY;
+const faroEndpoint = process.env.VITE_FARO_ENDPOINT;
 
-  if (!FARO_API_KEY) {
-    throw new Error('FARO_API_KEY is not set');
-  }
+if (!faroApiKey) {
+  throw new Error('VITE_FARO_API_KEY is not set');
+}
 
-  return {
-    plugins: [
-      faroUploader({
-        appName: 'testing',
-        endpoint: 'https://faro-api-prod-gb-south-1.grafana.net/faro/api/v1',
-        appId: '105',
-        stackId: '1287120',
-        // instructions on how to obtain your API key are in the documentation
-        // https://grafana.com/docs/grafana-cloud/monitor-applications/frontend-observability/sourcemap-upload-plugins/#obtain-an-api-key
-        apiKey: FARO_API_KEY,
-        gzipContents: true,
-      }),
-    ],
-  };
+if (!faroEndpoint) {
+  throw new Error('VITE_FARO_ENDPOINT is not set');
+}
+
+export default defineConfig({
+  plugins: [
+    react(),
+    faroUploader({
+      appName: 'testing',
+      endpoint: faroEndpoint,
+      appId: '105',
+      stackId: '1287120',
+      // instructions on how to obtain your API key are in the documentation
+      // https://grafana.com/docs/grafana-cloud/monitor-applications/frontend-observability/sourcemap-upload-plugins/#obtain-an-api-key
+      apiKey: faroApiKey,
+      gzipContents: true,
+    }),
+  ],
+  define: {
+    'process.env': {
+      VITE_API_URL: process.env.VITE_API_URL,
+    },
+  },
 });

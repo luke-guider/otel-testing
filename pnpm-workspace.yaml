@@ -1,2 +1,5 @@
 packages:
   - 'packages/*' 
+  - 'quickstart'
+  - 'infrastructure'
+  - 'my-container-service'

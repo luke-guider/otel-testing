@@ -1,0 +1,64 @@
+name: Deploy Grafana Alloy Stack to Azure
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+env:
+  ACR_NAME: grafanaalloyregistry
+  RESOURCE_GROUP: grafana-alloy-rg
+  LOCATION: uksouth
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: '18'
+
+      - name: Install dependencies
+        run: |
+          cd infrastructure
+          npm install
+
+      - name: Login to Azure
+        uses: azure/login@v1
+        with:
+          creds: ${{ secrets.AZURE_CREDENTIALS }}
+
+      - name: Login to Azure Container Registry
+        run: |
+          az acr login --name ${{ env.ACR_NAME }}
+
+      - name: Build and push collector image
+        run: |
+          docker build -t ${{ env.ACR_NAME }}.azurecr.io/grafana-alloy:latest .
+          docker push ${{ env.ACR_NAME }}.azurecr.io/grafana-alloy:latest
+
+      - name: Build and push API image
+        run: |
+          cd packages/api
+          docker build -t ${{ env.ACR_NAME }}.azurecr.io/api:latest .
+          docker push ${{ env.ACR_NAME }}.azurecr.io/api:latest
+
+      - name: Build and push Web image
+        run: |
+          cd packages/web
+          docker build -t ${{ env.ACR_NAME }}.azurecr.io/web:latest .
+          docker push ${{ env.ACR_NAME }}.azurecr.io/web:latest
+
+      - name: Install Pulumi
+        uses: pulumi/setup-pulumi@v2
+
+      - name: Deploy with Pulumi
+        env:
+          PULUMI_ACCESS_TOKEN: ${{ secrets.PULUMI_ACCESS_TOKEN }}
+        run: |
+          cd infrastructure
+          pulumi stack select dev
+          pulumi up --yes

@@ -1,20 +1,81 @@
-version: '3.8'
-
 services:
-  alloy:
-    container_name: alloy-testing
-    build: .
+  nginx:
+    container_name: otel-nginx
+    image: nginx:alpine
     ports:
-      - '12345:12345'
-      - '4317:4317'
-      - '4318:4318'
+      - '80:80'
     volumes:
-      - ./config.alloy:/etc/alloy/config.alloy
-      - '/var/run/docker.sock:/var/run/docker.sock'
-      - alloy_data:/var/lib/alloy/data
+      - ./nginx/nginx.conf:/etc/nginx/conf.d/default.conf
+    depends_on:
+      web:
+        condition: service_started
+      api:
+        condition: service_started
+    networks:
+      - app-network
+    restart: unless-stopped
+
+  web:
+    container_name: otel-web
+    build:
+      context: ./packages/web
+      dockerfile: Dockerfile
     env_file:
-      - ./.env
+      - ./packages/web/.env
+    depends_on:
+      alloy:
+        condition: service_started
+    networks:
+      - app-network
+    restart: unless-stopped
+
+  api:
+    container_name: otel-api
+    build:
+      context: ./packages/api
+      dockerfile: Dockerfile
+    env_file:
+      - ./packages/api/.env
+    depends_on:
+      alloy:
+        condition: service_started
+    networks:
+      - app-network
+    restart: unless-stopped
+
+  alloy:
+    container_name: otel-alloy
+    build:
+      context: ./packages/collector
+      dockerfile: Dockerfile
+    expose:
+      - '4318' # OTLP HTTP for internal services
+      - '4317' # OTLP gRPC for internal services
+    env_file:
+      - ./packages/collector/.env
+    networks:
+      - app-network
+    security_opt:
+      - no-new-privileges:true
+    deploy:
+      resources:
+        limits:
+          cpus: '1'
+          memory: 1G
+    healthcheck:
+      test: ['CMD', 'wget', '--spider', '-q', 'http://localhost:13133/']
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+    restart: unless-stopped
 
 volumes:
   alloy_data:
     driver: local
+
+networks:
+  app-network:
+    name: otel-network
+    driver: bridge
+    internal: true

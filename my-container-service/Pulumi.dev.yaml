@@ -1,0 +1,6 @@
+config:
+  azure-native:location: uksouth
+  my-container-service:appPath: ../packages/api
+  my-container-service:containerPort: "80"
+  my-container-service:cpu: "1"
+  my-container-service:memory: "2"

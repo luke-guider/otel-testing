@@ -1,0 +1,9 @@
+{
+  "name": "@otel/collector",
+  "version": "1.0.0",
+  "description": "OpenTelemetry Collector configuration",
+  "scripts": {
+    "start": "alloy run /etc/alloy/config.alloy"
+  },
+  "dependencies": {}
+}

@@ -4,7 +4,11 @@
   "scripts": {
     "api": "pnpm --filter @otel/api dev",
     "web": "pnpm --filter @otel/web start",
-    "format": "prettier --write \"**/*.{js,jsx,ts,tsx,json,md}\""
+    "format": "prettier --write \"**/*.{js,jsx,ts,tsx,json,md}\"",
+    "build:web": "pnpm --filter @otel/web build",
+    "build:api": "pnpm --filter @otel/api build",
+    "build:all": "pnpm build:web && pnpm build:api",
+    "start:all": "pnpm build:all && docker compose up"
   },
   "dependencies": {
     "@opentelemetry/api": "1.9.0",

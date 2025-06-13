@@ -85,21 +85,23 @@ const resource = defaultResource().merge(
   }),
 );
 
+const otelEndpoint =
+  process.env.OTEL_EXPORTER_OTLP_ENDPOINT || 'http://localhost:4318';
+
 // Add OTLP log exporter
 const logExporter = new OTLPLogExporter({
-  url: 'http://localhost:4318/v1/logs',
+  url: `${otelEndpoint}/v1/logs`,
 });
 
 // Add log processor
-
 const sdk = new NodeSDK({
   resource: resource,
   traceExporter: new OTLPTraceExporter({
-    url: 'http://localhost:4318/v1/traces',
+    url: `${otelEndpoint}/v1/traces`,
   }),
   metricReader: new PeriodicExportingMetricReader({
     exporter: new OTLPMetricExporter({
-      url: 'http://localhost:4318/v1/metrics',
+      url: `${otelEndpoint}/v1/metrics`,
     }),
   }),
   instrumentations: [getNodeAutoInstrumentations()],

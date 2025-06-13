@@ -1,11 +1,11 @@
 {
   "name": "@otel/api",
   "version": "1.0.0",
-  "main": "dist/index.js",
+  "main": "dist/app.js",
   "scripts": {
     "build": "tsc",
-    "start": "tsx src/index.ts",
-    "dev": "tsx watch --require ./src/instumentation.ts src/app.ts"
+    "start": "tsx src/app.ts",
+    "dev": "tsx watch --require ./src/instrumentation.ts src/app.ts"
   },
   "dependencies": {
     "@opentelemetry/api": "1.9.0",
