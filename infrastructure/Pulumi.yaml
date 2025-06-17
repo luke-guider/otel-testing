@@ -1,3 +1,0 @@
-name: grafana-alloy-azure
-runtime: nodejs
-description: Infrastructure for Grafana Alloy collector on Azure 
