@@ -31,7 +31,7 @@ RUN npm install --production
 COPY --from=builder /app/dist ./dist
 
 # Expose the port the app runs on
-EXPOSE 3000
+EXPOSE 8080
 
 # Start the application
 CMD ["node", "--require", "./dist/instrumentation.js", "dist/app.js"]

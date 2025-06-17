@@ -1,25 +1,11 @@
 services:
-  nginx:
-    container_name: otel-nginx
-    image: nginx:alpine
-    ports:
-      - '80:80'
-    volumes:
-      - ./nginx/nginx.conf:/etc/nginx/conf.d/default.conf
-    depends_on:
-      web:
-        condition: service_started
-      api:
-        condition: service_started
-    networks:
-      - app-network
-    restart: unless-stopped
-
   web:
     container_name: otel-web
     build:
       context: ./packages/web
       dockerfile: Dockerfile
+    ports:
+      - '4173:4173'
     env_file:
       - ./packages/web/.env
     depends_on:
@@ -34,6 +20,8 @@ services:
     build:
       context: ./packages/api
       dockerfile: Dockerfile
+    ports:
+      - '8080:8080'
     env_file:
       - ./packages/api/.env
     depends_on:
@@ -51,6 +39,9 @@ services:
     expose:
       - '4318' # OTLP HTTP for internal services
       - '4317' # OTLP gRPC for internal services
+      - '12345' # OpenTelemetry configuration endpoint
+    ports:
+      - '12345:12345' # OpenTelemetry configuration endpoint
     env_file:
       - ./packages/collector/.env
     networks:
@@ -63,7 +54,7 @@ services:
           cpus: '1'
           memory: 1G
     healthcheck:
-      test: ['CMD', 'wget', '--spider', '-q', 'http://localhost:13133/']
+      test: ['CMD', 'nc', '-z', 'localhost', '12345']
       interval: 30s
       timeout: 10s
       retries: 3
@@ -78,4 +69,3 @@ networks:
   app-network:
     name: otel-network
     driver: bridge
-    internal: true
